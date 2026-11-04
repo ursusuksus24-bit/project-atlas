@@ -1,0 +1,27 @@
+{
+  "id": "./",
+  "name": "Project Atlas",
+  "short_name": "Atlas",
+  "description": "Interactive real-world map with a game-inspired visual style.",
+  "lang": "ru",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#10121b",
+  "theme_color": "#10121b",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
