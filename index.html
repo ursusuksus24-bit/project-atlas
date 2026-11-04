@@ -1,10 +1,16 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#10121b">
+    <meta name="description" content="Project Atlas — интерактивная карта реального мира в игровом стиле.">
+
     <title>Project Atlas</title>
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
 
     <link
         rel="stylesheet"
@@ -194,7 +200,6 @@
                     </linearGradient>
                 </defs>
 
-                <!-- Боковая объёмная часть -->
                 <path
                     d="M24 3 L44 27 L24 55 L4 27 Z"
                     fill="url(#arrowBottom)"
@@ -202,19 +207,16 @@
                     stroke-width="1.5"
                 />
 
-                <!-- Левая грань -->
                 <path
                     d="M24 3 L24 55 L4 27 Z"
                     fill="url(#arrowSide)"
                 />
 
-                <!-- Правая грань -->
                 <path
                     d="M24 3 L44 27 L24 55 Z"
                     fill="#172c3a"
                 />
 
-                <!-- Верхняя поверхность -->
                 <path
                     d="M24 3 L42 26 L24 43 L6 26 Z"
                     fill="url(#arrowTop)"
@@ -222,14 +224,12 @@
                     stroke-width="0.8"
                 />
 
-                <!-- Центральная тёмная грань -->
                 <path
                     d="M24 3 L24 43 L6 26 Z"
                     fill="#3babb2"
                     opacity="0.55"
                 />
 
-                <!-- Небольшой розовый акцент -->
                 <path
                     d="M18 49 L24 55 L30 49"
                     fill="none"
@@ -323,6 +323,19 @@
                     timeout: 15000
                 }
             );
+        }
+
+        // Подключаем Service Worker для PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .catch(function(error) {
+                        console.error(
+                            'Service Worker registration failed:',
+                            error
+                        );
+                    });
+            });
         }
     </script>
 
