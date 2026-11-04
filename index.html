@@ -4,55 +4,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#10121b">
-    <meta name="description" content="Project Atlas — интерактивная карта реального мира в игровом стиле.">
+    <meta name="theme-color" content="#080d1b">
+    <meta name="description" content="Project Atlas — интерактивная карта реального мира.">
     <title>Project Atlas</title>
 
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <link href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" rel="stylesheet">
+    <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
 
     <style>
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
 
-        body {
+        html, body {
             margin: 0;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
-            background: #10121b;
+            background: #080d1b;
             font-family: Arial, sans-serif;
         }
 
         #map {
-            width: 100vw;
-            height: 100vh;
-            background: #10121b;
-        }
-
-        /* Тёмная обработка обычной карты */
-        .leaflet-tile-pane {
-            filter: brightness(0.58) saturate(1.35) hue-rotate(165deg);
+            position: absolute;
+            inset: 0;
+            background: #080d1b;
         }
 
         .top-panel {
             position: absolute;
             top: 20px;
             left: 20px;
-            z-index: 1000;
+            z-index: 10;
             pointer-events: none;
         }
 
         .logo {
-            color: white;
+            color: #f1f5ff;
             font-size: 22px;
             font-weight: 900;
             letter-spacing: 4px;
-            text-shadow: 0 0 12px #ff4fa3;
+            text-shadow: 0 0 14px rgba(255, 70, 160, .45);
         }
 
         .subtitle {
             margin-top: 5px;
-            color: #52e5e0;
+            color: #50e8e2;
             font-size: 10px;
             letter-spacing: 3px;
         }
@@ -61,17 +62,21 @@
             position: absolute;
             right: 20px;
             bottom: 105px;
-            z-index: 1000;
+            z-index: 10;
             padding: 14px 20px;
-            border: 1px solid #54e9e2;
+            border: 1px solid #42dcd8;
             border-radius: 6px;
-            background: rgba(13,20,32,.94);
+            background: rgba(8, 17, 31, .94);
             color: #65f5ed;
             font-size: 12px;
             font-weight: bold;
             letter-spacing: 2px;
             cursor: pointer;
-            box-shadow: 0 0 15px rgba(65,225,220,.2);
+            box-shadow: 0 0 15px rgba(65, 225, 220, .18);
+        }
+
+        .gps-button:active {
+            background: #123b43;
         }
 
         .bottom-panel {
@@ -81,9 +86,9 @@
             width: 100%;
             min-height: 75px;
             padding: 15px 20px;
-            z-index: 1000;
-            background: rgba(12,15,26,.94);
-            border-top: 1px solid rgba(75,229,224,.45);
+            z-index: 10;
+            background: rgba(8, 13, 27, .96);
+            border-top: 1px solid rgba(75, 229, 224, .45);
             color: white;
         }
 
@@ -95,27 +100,35 @@
         }
 
         .bottom-info {
-            color: #d2d7e5;
+            color: #c2cede;
             font-size: 12px;
             letter-spacing: 1px;
         }
 
-        .arrow-marker {
-            background: transparent;
-            border: none;
-        }
-
-        .arrow-marker svg {
+        .user-arrow {
             width: 48px;
             height: 58px;
-            overflow: visible;
-            filter: drop-shadow(0 0 7px rgba(55,239,226,.65));
+            filter: drop-shadow(0 0 8px rgba(55, 239, 226, .7));
+        }
+
+        .maplibregl-ctrl-attrib {
+            font-size: 10px !important;
         }
 
         @media (max-width: 600px) {
-            .top-panel { top: 16px; left: 15px; }
-            .logo { font-size: 19px; }
-            .gps-button { right: 15px; bottom: 100px; }
+            .top-panel {
+                top: 16px;
+                left: 15px;
+            }
+
+            .logo {
+                font-size: 19px;
+            }
+
+            .gps-button {
+                right: 15px;
+                bottom: 100px;
+            }
         }
     </style>
 </head>
@@ -129,7 +142,9 @@
     <div class="subtitle">VICE CITY / NIGHTCALL</div>
 </div>
 
-<button class="gps-button" onclick="findMe()">◉ НАЙТИ МЕНЯ</button>
+<button class="gps-button" onclick="findMe()">
+    ◉ НАЙТИ МЕНЯ
+</button>
 
 <div class="bottom-panel">
     <div class="bottom-title">GPS SYSTEM</div>
@@ -137,24 +152,159 @@
     <div class="bottom-info" id="coordinates">COORDINATES: WAITING...</div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
-    // Карта
-    const map = L.map('map').setView([41.2995, 69.2401], 13);
+    // Создание карты
+    const map = new maplibregl.Map({
+        container: 'map',
+        style: 'https://tiles.openfreemap.org/styles/dark',
+        center: [69.2401, 41.2995],
+        zoom: 13,
+        attributionControl: true,
+        pitchWithRotate: false,
+        dragRotate: false
+    });
 
-    // OpenStreetMap: без API-ключа
-    L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {
-            attribution: '&copy; OpenStreetMap contributors',
-            maxZoom: 19
-        }
-    ).addTo(map);
+    // Цветовая палитра Project Atlas
+    function applyAtlasStyle() {
+        const layers = map.getStyle().layers || [];
+
+        layers.forEach(layer => {
+            const id = layer.id.toLowerCase();
+            const sourceLayer = (layer['source-layer'] || '').toLowerCase();
+            const type = layer.type;
+
+            try {
+                // Основной фон
+                if (type === 'background') {
+                    map.setPaintProperty(
+                        layer.id,
+                        'background-color',
+                        '#080d1b'
+                    );
+                }
+
+                // Вода
+                if (
+                    type === 'fill' &&
+                    (sourceLayer === 'water' || id.includes('water'))
+                ) {
+                    map.setPaintProperty(
+                        layer.id,
+                        'fill-color',
+                        '#071b32'
+                    );
+                }
+
+                // Парки и зелёные зоны
+                if (
+                    type === 'fill' &&
+                    (sourceLayer === 'park' ||
+                     sourceLayer === 'landcover' ||
+                     sourceLayer === 'landuse')
+                ) {
+                    map.setPaintProperty(
+                        layer.id,
+                        'fill-color',
+                        '#101d2b'
+                    );
+                }
+
+                // Здания
+                if (
+                    type === 'fill' &&
+                    (sourceLayer === 'building' ||
+                     id.includes('building'))
+                ) {
+                    map.setPaintProperty(
+                        layer.id,
+                        'fill-color',
+                        '#111b2d'
+                    );
+
+                    if (map.getPaintProperty(layer.id, 'fill-outline-color') !== undefined) {
+                        map.setPaintProperty(
+                            layer.id,
+                            'fill-outline-color',
+                            '#26364d'
+                        );
+                    }
+                }
+
+                // Дороги: контуры и основные линии
+                if (
+                    type === 'line' &&
+                    sourceLayer === 'transportation'
+                ) {
+                    const casing = id.includes('casing');
+
+                    const roadColor = [
+                        'match',
+                        ['get', 'class'],
+                        'motorway', '#27d9d4',
+                        'trunk', '#29c9ca',
+                        'primary', '#28b8bc',
+                        'secondary', '#238b9b',
+                        'tertiary', '#286b7e',
+                        'minor', '#294c62',
+                        'service', '#263b50',
+                        'path', '#25364b',
+                        '#29485d'
+                    ];
+
+                    const casingColor = [
+                        'match',
+                        ['get', 'class'],
+                        'motorway', '#123d4a',
+                        'trunk', '#123744',
+                        'primary', '#123440',
+                        'secondary', '#102b3b',
+                        'tertiary', '#102638',
+                        '#101f32'
+                    ];
+
+                    map.setPaintProperty(
+                        layer.id,
+                        'line-color',
+                        casing ? casingColor : roadColor
+                    );
+                }
+
+                // Подписи
+                if (type === 'symbol') {
+                    if (
+                        map.getPaintProperty(layer.id, 'text-color') !== undefined
+                    ) {
+                        map.setPaintProperty(
+                            layer.id,
+                            'text-color',
+                            '#a9bacd'
+                        );
+                    }
+
+                    if (
+                        map.getPaintProperty(layer.id, 'text-halo-color') !== undefined
+                    ) {
+                        map.setPaintProperty(
+                            layer.id,
+                            'text-halo-color',
+                            '#091321'
+                        );
+                    }
+                }
+            } catch (error) {
+                console.warn('Style layer skipped:', layer.id, error);
+            }
+        });
+    }
+
+    map.on('load', function() {
+        applyAtlasStyle();
+    });
 
     // Стрелка пользователя
     const arrowHTML = `
-        <svg viewBox="0 0 48 58" xmlns="http://www.w3.org/2000/svg">
+        <svg class="user-arrow" viewBox="0 0 48 58"
+             xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <linearGradient id="arrowTop" x1="0" y1="0" x2="1" y2="1">
                     <stop offset="0%" stop-color="#a8fff8"/>
@@ -168,27 +318,28 @@
             </defs>
 
             <path d="M24 3 L44 27 L24 55 L4 27 Z"
-                fill="#172c3a" stroke="#15202c" stroke-width="1.5"/>
+                  fill="#172c3a" stroke="#15202c" stroke-width="1.5"/>
 
-            <path d="M24 3 L24 55 L4 27 Z" fill="url(#arrowSide)"/>
+            <path d="M24 3 L24 55 L4 27 Z"
+                  fill="url(#arrowSide)"/>
 
             <path d="M24 3 L42 26 L24 43 L6 26 Z"
-                fill="url(#arrowTop)" stroke="#a4fff8" stroke-width=".8"/>
+                  fill="url(#arrowTop)" stroke="#a4fff8" stroke-width=".8"/>
 
             <path d="M18 49 L24 55 L30 49"
-                fill="none" stroke="#ff5ca8" stroke-width="2"
-                stroke-linecap="round"/>
+                  fill="none" stroke="#ff5ca8" stroke-width="2"
+                  stroke-linecap="round"/>
         </svg>
     `;
 
-    const arrowIcon = L.divIcon({
-        className: 'arrow-marker',
-        html: arrowHTML,
-        iconSize: [48, 58],
-        iconAnchor: [24, 29]
+    const arrowElement = document.createElement('div');
+    arrowElement.innerHTML = arrowHTML;
+
+    const arrowMarker = new maplibregl.Marker({
+        element: arrowElement,
+        anchor: 'center'
     });
 
-    let userMarker = null;
     let gpsStarted = false;
     let firstFix = true;
 
@@ -211,28 +362,29 @@
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
                 const accuracy = Math.round(position.coords.accuracy);
-                const currentPosition = [lat, lon];
 
                 document.getElementById('status').textContent =
                     'GPS: CONNECTED / ACCURACY: ' + accuracy + ' M';
 
                 document.getElementById('coordinates').textContent =
-                    'COORDINATES: ' + lat.toFixed(6) + ', ' + lon.toFixed(6);
+                    'COORDINATES: ' +
+                    lat.toFixed(6) + ', ' + lon.toFixed(6);
 
-                if (!userMarker) {
-                    userMarker = L.marker(currentPosition, {
-                        icon: arrowIcon,
-                        zIndexOffset: 1000
-                    }).addTo(map);
-                } else {
-                    userMarker.setLatLng(currentPosition);
-                }
+                arrowMarker
+                    .setLngLat([lon, lat])
+                    .addTo(map);
 
                 if (firstFix) {
-                    map.setView(currentPosition, 16);
+                    map.flyTo({
+                        center: [lon, lat],
+                        zoom: 16,
+                        speed: 1.2
+                    });
+
                     firstFix = false;
                 }
             },
+
             function(error) {
                 gpsStarted = false;
 
@@ -245,6 +397,7 @@
                 document.getElementById('status').textContent =
                     messages[error.code] || 'GPS ERROR';
             },
+
             {
                 enableHighAccuracy: true,
                 maximumAge: 3000,
