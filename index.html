@@ -6,23 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#10121b">
     <meta name="description" content="Project Atlas — интерактивная карта реального мира в игровом стиле.">
-
     <title>Project Atlas</title>
 
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
-            padding: 0;
             overflow: hidden;
             background: #10121b;
             font-family: Arial, sans-serif;
@@ -34,9 +29,9 @@
             background: #10121b;
         }
 
-        /* Новая тёмная основа карты */
+        /* Тёмная обработка обычной карты */
         .leaflet-tile-pane {
-            filter: saturate(1.15) brightness(1.12);
+            filter: brightness(0.58) saturate(1.35) hue-rotate(165deg);
         }
 
         .top-panel {
@@ -44,11 +39,11 @@
             top: 20px;
             left: 20px;
             z-index: 1000;
-            color: white;
             pointer-events: none;
         }
 
         .logo {
+            color: white;
             font-size: 22px;
             font-weight: 900;
             letter-spacing: 4px;
@@ -57,9 +52,9 @@
 
         .subtitle {
             margin-top: 5px;
+            color: #52e5e0;
             font-size: 10px;
             letter-spacing: 3px;
-            color: #52e5e0;
         }
 
         .gps-button {
@@ -70,17 +65,13 @@
             padding: 14px 20px;
             border: 1px solid #54e9e2;
             border-radius: 6px;
-            background: rgba(13, 20, 32, 0.92);
+            background: rgba(13,20,32,.94);
             color: #65f5ed;
             font-size: 12px;
             font-weight: bold;
             letter-spacing: 2px;
             cursor: pointer;
-            box-shadow: 0 0 15px rgba(65, 225, 220, 0.2);
-        }
-
-        .gps-button:active {
-            background: #164044;
+            box-shadow: 0 0 15px rgba(65,225,220,.2);
         }
 
         .bottom-panel {
@@ -91,21 +82,21 @@
             min-height: 75px;
             padding: 15px 20px;
             z-index: 1000;
-            background: rgba(12, 15, 26, 0.94);
-            border-top: 1px solid rgba(75, 229, 224, 0.45);
+            background: rgba(12,15,26,.94);
+            border-top: 1px solid rgba(75,229,224,.45);
             color: white;
         }
 
         .bottom-title {
+            margin-bottom: 7px;
             color: #55e7df;
             font-size: 10px;
             letter-spacing: 3px;
-            margin-bottom: 7px;
         }
 
         .bottom-info {
-            font-size: 12px;
             color: #d2d7e5;
+            font-size: 12px;
             letter-spacing: 1px;
         }
 
@@ -118,226 +109,160 @@
             width: 48px;
             height: 58px;
             overflow: visible;
-            filter: drop-shadow(0 0 7px rgba(55, 239, 226, 0.65));
+            filter: drop-shadow(0 0 7px rgba(55,239,226,.65));
         }
 
         @media (max-width: 600px) {
-            .top-panel {
-                top: 16px;
-                left: 15px;
-            }
-
-            .logo {
-                font-size: 19px;
-            }
-
-            .gps-button {
-                right: 15px;
-                bottom: 100px;
-            }
+            .top-panel { top: 16px; left: 15px; }
+            .logo { font-size: 19px; }
+            .gps-button { right: 15px; bottom: 100px; }
         }
     </style>
 </head>
 
 <body>
 
-    <div id="map"></div>
+<div id="map"></div>
 
-    <div class="top-panel">
-        <div class="logo">PROJECT ATLAS</div>
-        <div class="subtitle">VICE CITY / NIGHTCALL</div>
-    </div>
+<div class="top-panel">
+    <div class="logo">PROJECT ATLAS</div>
+    <div class="subtitle">VICE CITY / NIGHTCALL</div>
+</div>
 
-    <button class="gps-button" onclick="findMe()">
-        ◉ НАЙТИ МЕНЯ
-    </button>
+<button class="gps-button" onclick="findMe()">◉ НАЙТИ МЕНЯ</button>
 
-    <div class="bottom-panel">
-        <div class="bottom-title">GPS SYSTEM</div>
-        <div class="bottom-info" id="status">
-            LOCATION: TASHKENT
-        </div>
-        <div class="bottom-info" id="coordinates">
-            COORDINATES: WAITING...
-        </div>
-    </div>
+<div class="bottom-panel">
+    <div class="bottom-title">GPS SYSTEM</div>
+    <div class="bottom-info" id="status">LOCATION: TASHKENT</div>
+    <div class="bottom-info" id="coordinates">COORDINATES: WAITING...</div>
+</div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <script>
-        // Создаём карту
-        const map = L.map('map').setView([41.2995, 69.2401], 13);
+<script>
+    // Карта
+    const map = L.map('map').setView([41.2995, 69.2401], 13);
 
-        // Новая тёмная картографическая основа CARTO
-        L.tileLayer(
-            'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-            {
-                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-                subdomains: 'abcd',
-                maxZoom: 20
-            }
-        ).addTo(map);
+    // OpenStreetMap: без API-ключа
+    L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19
+        }
+    ).addTo(map);
 
-        // Объёмная стрелка Project Atlas
-        const arrowHTML = `
-            <svg viewBox="0 0 48 58" xmlns="http://www.w3.org/2000/svg">
+    // Стрелка пользователя
+    const arrowHTML = `
+        <svg viewBox="0 0 48 58" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="arrowTop" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#a8fff8"/>
+                    <stop offset="45%" stop-color="#35dcd5"/>
+                    <stop offset="100%" stop-color="#087e91"/>
+                </linearGradient>
+                <linearGradient id="arrowSide" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#202b3a"/>
+                    <stop offset="100%" stop-color="#566477"/>
+                </linearGradient>
+            </defs>
 
-                <defs>
-                    <linearGradient id="arrowTop" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stop-color="#a8fff8"/>
-                        <stop offset="45%" stop-color="#35dcd5"/>
-                        <stop offset="100%" stop-color="#087e91"/>
-                    </linearGradient>
+            <path d="M24 3 L44 27 L24 55 L4 27 Z"
+                fill="#172c3a" stroke="#15202c" stroke-width="1.5"/>
 
-                    <linearGradient id="arrowSide" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stop-color="#202b3a"/>
-                        <stop offset="100%" stop-color="#566477"/>
-                    </linearGradient>
+            <path d="M24 3 L24 55 L4 27 Z" fill="url(#arrowSide)"/>
 
-                    <linearGradient id="arrowBottom" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#384b5d"/>
-                        <stop offset="100%" stop-color="#111925"/>
-                    </linearGradient>
-                </defs>
+            <path d="M24 3 L42 26 L24 43 L6 26 Z"
+                fill="url(#arrowTop)" stroke="#a4fff8" stroke-width=".8"/>
 
-                <path
-                    d="M24 3 L44 27 L24 55 L4 27 Z"
-                    fill="url(#arrowBottom)"
-                    stroke="#15202c"
-                    stroke-width="1.5"
-                />
+            <path d="M18 49 L24 55 L30 49"
+                fill="none" stroke="#ff5ca8" stroke-width="2"
+                stroke-linecap="round"/>
+        </svg>
+    `;
 
-                <path
-                    d="M24 3 L24 55 L4 27 Z"
-                    fill="url(#arrowSide)"
-                />
+    const arrowIcon = L.divIcon({
+        className: 'arrow-marker',
+        html: arrowHTML,
+        iconSize: [48, 58],
+        iconAnchor: [24, 29]
+    });
 
-                <path
-                    d="M24 3 L44 27 L24 55 Z"
-                    fill="#172c3a"
-                />
+    let userMarker = null;
+    let gpsStarted = false;
+    let firstFix = true;
 
-                <path
-                    d="M24 3 L42 26 L24 43 L6 26 Z"
-                    fill="url(#arrowTop)"
-                    stroke="#a4fff8"
-                    stroke-width="0.8"
-                />
-
-                <path
-                    d="M24 3 L24 43 L6 26 Z"
-                    fill="#3babb2"
-                    opacity="0.55"
-                />
-
-                <path
-                    d="M18 49 L24 55 L30 49"
-                    fill="none"
-                    stroke="#ff5ca8"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                />
-
-            </svg>
-        `;
-
-        const arrowIcon = L.divIcon({
-            className: 'arrow-marker',
-            html: arrowHTML,
-            iconSize: [48, 58],
-            iconAnchor: [24, 29]
-        });
-
-        let userMarker = null;
-        let gpsStarted = false;
-        let firstFix = true;
-
-        // Запускаем GPS
-        function findMe() {
-            if (!navigator.geolocation) {
-                document.getElementById('status').textContent =
-                    'GPS: NOT SUPPORTED';
-                return;
-            }
-
+    // GPS
+    function findMe() {
+        if (!navigator.geolocation) {
             document.getElementById('status').textContent =
-                'GPS: SEARCHING...';
+                'GPS: NOT SUPPORTED';
+            return;
+        }
 
-            if (gpsStarted) {
-                return;
-            }
+        document.getElementById('status').textContent =
+            'GPS: SEARCHING...';
 
-            gpsStarted = true;
+        if (gpsStarted) return;
+        gpsStarted = true;
 
-            navigator.geolocation.watchPosition(
+        navigator.geolocation.watchPosition(
+            function(position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                const accuracy = Math.round(position.coords.accuracy);
+                const currentPosition = [lat, lon];
 
-                function(position) {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
+                document.getElementById('status').textContent =
+                    'GPS: CONNECTED / ACCURACY: ' + accuracy + ' M';
 
-                    const accuracy = Math.round(position.coords.accuracy);
+                document.getElementById('coordinates').textContent =
+                    'COORDINATES: ' + lat.toFixed(6) + ', ' + lon.toFixed(6);
 
-                    const currentPosition = [lat, lon];
-
-                    document.getElementById('status').textContent =
-                        'GPS: CONNECTED / ACCURACY: ' + accuracy + ' M';
-
-                    document.getElementById('coordinates').textContent =
-                        'COORDINATES: ' +
-                        lat.toFixed(6) + ', ' + lon.toFixed(6);
-
-                    if (!userMarker) {
-                        userMarker = L.marker(currentPosition, {
-                            icon: arrowIcon,
-                            zIndexOffset: 1000
-                        }).addTo(map);
-                    } else {
-                        userMarker.setLatLng(currentPosition);
-                    }
-
-                    if (firstFix) {
-                        map.setView(currentPosition, 16);
-                        firstFix = false;
-                    }
-                },
-
-                function(error) {
-                    gpsStarted = false;
-
-                    let message = 'GPS ERROR';
-
-                    if (error.code === 1) {
-                        message = 'GPS: PERMISSION DENIED';
-                    } else if (error.code === 2) {
-                        message = 'GPS: POSITION UNAVAILABLE';
-                    } else if (error.code === 3) {
-                        message = 'GPS: TIMEOUT';
-                    }
-
-                    document.getElementById('status').textContent = message;
-                },
-
-                {
-                    enableHighAccuracy: true,
-                    maximumAge: 3000,
-                    timeout: 15000
+                if (!userMarker) {
+                    userMarker = L.marker(currentPosition, {
+                        icon: arrowIcon,
+                        zIndexOffset: 1000
+                    }).addTo(map);
+                } else {
+                    userMarker.setLatLng(currentPosition);
                 }
-            );
-        }
 
-        // Подключаем Service Worker для PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js')
-                    .catch(function(error) {
-                        console.error(
-                            'Service Worker registration failed:',
-                            error
-                        );
-                    });
-            });
-        }
-    </script>
+                if (firstFix) {
+                    map.setView(currentPosition, 16);
+                    firstFix = false;
+                }
+            },
+            function(error) {
+                gpsStarted = false;
+
+                const messages = {
+                    1: 'GPS: PERMISSION DENIED',
+                    2: 'GPS: POSITION UNAVAILABLE',
+                    3: 'GPS: TIMEOUT'
+                };
+
+                document.getElementById('status').textContent =
+                    messages[error.code] || 'GPS ERROR';
+            },
+            {
+                enableHighAccuracy: true,
+                maximumAge: 3000,
+                timeout: 15000
+            }
+        );
+    }
+
+    // PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('./sw.js')
+                .catch(function(error) {
+                    console.error('Service Worker error:', error);
+                });
+        });
+    }
+</script>
 
 </body>
 </html>
