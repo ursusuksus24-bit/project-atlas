@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -12,10 +13,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
 
-    <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
     <style>
         * {
@@ -36,8 +34,9 @@
             background: #10121b;
         }
 
+        /* Новая тёмная основа карты */
         .leaflet-tile-pane {
-            filter: saturate(1.2) hue-rotate(320deg);
+            filter: saturate(1.15) brightness(1.12);
         }
 
         .top-panel {
@@ -169,12 +168,13 @@
         // Создаём карту
         const map = L.map('map').setView([41.2995, 69.2401], 13);
 
-        // Подключаем OpenStreetMap
+        // Новая тёмная картографическая основа CARTO
         L.tileLayer(
-            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
             {
-                attribution: '&copy; OpenStreetMap contributors',
-                maxZoom: 19
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 20
             }
         ).addTo(map);
 
