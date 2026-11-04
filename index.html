@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -11,7 +10,6 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
-
     <link href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" rel="stylesheet">
     <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
 
@@ -133,324 +131,320 @@
 </head>
 
 <body>
+    <div id="map"></div>
 
-<div id="map"></div>
+    <div class="top-panel">
+        <div class="logo">PROJECT ATLAS</div>
+        <div class="subtitle">VICE CITY / NIGHTCALL</div>
+    </div>
 
-<div class="top-panel">
-    <div class="logo">PROJECT ATLAS</div>
-    <div class="subtitle">VICE CITY / NIGHTCALL</div>
-</div>
+    <button class="gps-button" onclick="findMe()">
+        ◉ НАЙТИ МЕНЯ
+    </button>
 
-<button class="gps-button" onclick="findMe()">
-    ◉ НАЙТИ МЕНЯ
-</button>
+    <div class="bottom-panel">
+        <div class="bottom-title">GPS SYSTEM</div>
+        <div class="bottom-info" id="status">LOCATION: TASHKENT</div>
+        <div class="bottom-info" id="coordinates">COORDINATES: WAITING...</div>
+    </div>
 
-<div class="bottom-panel">
-    <div class="bottom-title">GPS SYSTEM</div>
-    <div class="bottom-info" id="status">LOCATION: TASHKENT</div>
-    <div class="bottom-info" id="coordinates">COORDINATES: WAITING...</div>
-</div>
+    <script>
+        // Создание карты
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: 'https://tiles.openfreemap.org/styles/dark',
 
-<script>
-    // Создание карты
-    const map = new maplibregl.Map({
-        container: 'map',
-        style: 'https://tiles.openfreemap.org/styles/dark',
-        center: [69.2401, 41.2995],
-        zoom: 13,
-        attributionControl: true,
-        pitchWithRotate: false,
-        dragRotate: false
-    });
+            // Начальный обзор региона Ташкент — Чарвак
+            center: [69.585, 41.465],
+            zoom: 9.2,
 
-    // Палитра Vice City / Project Atlas
-    function applyAtlasStyle() {
-        const layers = map.getStyle().layers || [];
+            attributionControl: true,
+            pitchWithRotate: false,
+            dragRotate: false
+        });
 
-        layers.forEach(layer => {
-            const id = layer.id.toLowerCase();
-            const sourceLayer =
-                (layer['source-layer'] || '').toLowerCase();
+        // Палитра Vice City / Project Atlas
+        function applyAtlasStyle() {
+            const layers = map.getStyle().layers || [];
 
-            try {
-                // Фон
-                if (layer.type === 'background') {
-                    map.setPaintProperty(
-                        layer.id,
-                        'background-color',
-                        '#100d25'
-                    );
-                }
+            layers.forEach(layer => {
+                const id = layer.id.toLowerCase();
+                const sourceLayer =
+                    (layer['source-layer'] || '').toLowerCase();
 
-                // Вода
-                if (
-                    layer.type === 'fill' &&
-                    (sourceLayer === 'water' || id.includes('water'))
-                ) {
-                    map.setPaintProperty(
-                        layer.id,
-                        'fill-color',
-                        '#111936'
-                    );
-                }
-
-                // Зелёные зоны и парки
-                if (
-                    layer.type === 'fill' &&
-                    ['park', 'landcover', 'landuse'].includes(sourceLayer)
-                ) {
-                    map.setPaintProperty(
-                        layer.id,
-                        'fill-color',
-                        '#17152d'
-                    );
-                }
-
-                // Здания и кварталы
-                if (
-                    layer.type === 'fill' &&
-                    (
-                        sourceLayer === 'building' ||
-                        id.includes('building')
-                    )
-                ) {
-                    map.setPaintProperty(
-                        layer.id,
-                        'fill-color',
-                        '#211832'
-                    );
-
-                    map.setPaintProperty(
-                        layer.id,
-                        'fill-outline-color',
-                        '#493052'
-                    );
-                }
-
-                // Дорожная сеть
-                if (
-                    layer.type === 'line' &&
-                    sourceLayer === 'transportation'
-                ) {
-                    const isCasing = id.includes('casing');
-
-                    const roadColors = [
-                        'match',
-                        ['get', 'class'],
-
-                        'motorway', '#ff55b5',
-                        'trunk', '#f65aaf',
-                        'primary', '#ed4da7',
-                        'secondary', '#d85ba9',
-                        'tertiary', '#48bfc9',
-                        'minor', '#348d9f',
-                        'service', '#376a86',
-                        'path', '#354d75',
-                        'track', '#354d75',
-
-                        '#47718d'
-                    ];
-
-                    const casingColors = [
-                        'match',
-                        ['get', 'class'],
-
-                        'motorway', '#64234f',
-                        'trunk', '#572449',
-                        'primary', '#512044',
-                        'secondary', '#462044',
-                        'tertiary', '#193d50',
-
-                        '#192b47'
-                    ];
-
-                    map.setPaintProperty(
-                        layer.id,
-                        'line-color',
-                        isCasing ? casingColors : roadColors
-                    );
-
-                    // Мягкое свечение крупных дорог
-                    if (!isCasing) {
+                try {
+                    // Фон
+                    if (layer.type === 'background') {
                         map.setPaintProperty(
                             layer.id,
-                            'line-blur',
-                            [
-                                'interpolate',
-                                ['linear'],
-                                ['zoom'],
-                                10, 0,
-                                15, 0.8,
-                                18, 1.2
-                            ]
-                        );
-                    }
-                }
-
-                // Названия улиц и объектов
-                if (layer.type === 'symbol') {
-                    if (
-                        map.getPaintProperty(layer.id, 'text-color') !== undefined
-                    ) {
-                        map.setPaintProperty(
-                            layer.id,
-                            'text-color',
-                            '#d8c9ed'
-                        );
-                    }
-
-                    if (
-                        map.getPaintProperty(layer.id, 'text-halo-color') !== undefined
-                    ) {
-                        map.setPaintProperty(
-                            layer.id,
-                            'text-halo-color',
+                            'background-color',
                             '#100d25'
                         );
                     }
 
+                    // Вода
                     if (
-                        map.getPaintProperty(layer.id, 'text-halo-width') !== undefined
+                        layer.type === 'fill' &&
+                        (sourceLayer === 'water' || id.includes('water'))
                     ) {
                         map.setPaintProperty(
                             layer.id,
-                            'text-halo-width',
-                            1.3
+                            'fill-color',
+                            '#111936'
                         );
                     }
+
+                    // Зелёные зоны и парки
+                    if (
+                        layer.type === 'fill' &&
+                        ['park', 'landcover', 'landuse'].includes(sourceLayer)
+                    ) {
+                        map.setPaintProperty(
+                            layer.id,
+                            'fill-color',
+                            '#17152d'
+                        );
+                    }
+
+                    // Здания и кварталы
+                    if (
+                        layer.type === 'fill' &&
+                        (
+                            sourceLayer === 'building' ||
+                            id.includes('building')
+                        )
+                    ) {
+                        map.setPaintProperty(
+                            layer.id,
+                            'fill-color',
+                            '#211832'
+                        );
+
+                        map.setPaintProperty(
+                            layer.id,
+                            'fill-outline-color',
+                            '#493052'
+                        );
+                    }
+
+                    // Дорожная сеть
+                    if (
+                        layer.type === 'line' &&
+                        sourceLayer === 'transportation'
+                    ) {
+                        const isCasing = id.includes('casing');
+
+                        const roadColors = [
+                            'match',
+                            ['get', 'class'],
+                            'motorway', '#ff55b5',
+                            'trunk', '#f65aaf',
+                            'primary', '#ed4da7',
+                            'secondary', '#d85ba9',
+                            'tertiary', '#48bfc9',
+                            'minor', '#348d9f',
+                            'service', '#376a86',
+                            'path', '#354d75',
+                            'track', '#354d75',
+                            '#47718d'
+                        ];
+
+                        const casingColors = [
+                            'match',
+                            ['get', 'class'],
+                            'motorway', '#64234f',
+                            'trunk', '#572449',
+                            'primary', '#512044',
+                            'secondary', '#462044',
+                            'tertiary', '#193d50',
+                            '#192b47'
+                        ];
+
+                        map.setPaintProperty(
+                            layer.id,
+                            'line-color',
+                            isCasing ? casingColors : roadColors
+                        );
+
+                        // Мягкое свечение крупных дорог
+                        if (!isCasing) {
+                            map.setPaintProperty(
+                                layer.id,
+                                'line-blur',
+                                [
+                                    'interpolate',
+                                    ['linear'],
+                                    ['zoom'],
+                                    10, 0,
+                                    15, 0.8,
+                                    18, 1.2
+                                ]
+                            );
+                        }
+                    }
+
+                    // Названия улиц и объектов
+                    if (layer.type === 'symbol') {
+                        if (
+                            map.getPaintProperty(layer.id, 'text-color') !== undefined
+                        ) {
+                            map.setPaintProperty(
+                                layer.id,
+                                'text-color',
+                                '#d8c9ed'
+                            );
+                        }
+
+                        if (
+                            map.getPaintProperty(layer.id, 'text-halo-color') !== undefined
+                        ) {
+                            map.setPaintProperty(
+                                layer.id,
+                                'text-halo-color',
+                                '#100d25'
+                            );
+                        }
+
+                        if (
+                            map.getPaintProperty(layer.id, 'text-halo-width') !== undefined
+                        ) {
+                            map.setPaintProperty(
+                                layer.id,
+                                'text-halo-width',
+                                1.3
+                            );
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Style layer skipped:', layer.id, error);
                 }
-
-            } catch (error) {
-                console.warn('Style layer skipped:', layer.id, error);
-            }
-        });
-    }
-
-    map.on('load', applyAtlasStyle);
-
-    // Стрелка GPS
-    const arrowHTML = `
-        <svg class="user-arrow" viewBox="0 0 48 58"
-             xmlns="http://www.w3.org/2000/svg">
-
-            <defs>
-                <linearGradient id="arrowTop" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#ffffff"/>
-                    <stop offset="45%" stop-color="#8cfff5"/>
-                    <stop offset="100%" stop-color="#28cbd2"/>
-                </linearGradient>
-
-                <linearGradient id="arrowSide" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stop-color="#172536"/>
-                    <stop offset="100%" stop-color="#526477"/>
-                </linearGradient>
-            </defs>
-
-            <path d="M24 3 L44 27 L24 55 L4 27 Z"
-                  fill="#101827"
-                  stroke="#ffffff"
-                  stroke-width="2"/>
-
-            <path d="M24 3 L24 55 L4 27 Z"
-                  fill="url(#arrowSide)"/>
-
-            <path d="M24 3 L42 26 L24 43 L6 26 Z"
-                  fill="url(#arrowTop)"
-                  stroke="#ffffff"
-                  stroke-width="1.2"/>
-
-            <path d="M18 49 L24 55 L30 49"
-                  fill="none"
-                  stroke="#ff62b9"
-                  stroke-width="2.5"
-                  stroke-linecap="round"/>
-        </svg>
-    `;
-
-    const arrowElement = document.createElement('div');
-    arrowElement.innerHTML = arrowHTML;
-
-    const arrowMarker = new maplibregl.Marker({
-        element: arrowElement,
-        anchor: 'center'
-    });
-
-    let gpsStarted = false;
-    let firstFix = true;
-
-    // GPS
-    function findMe() {
-        if (!navigator.geolocation) {
-            document.getElementById('status').textContent =
-                'GPS: NOT SUPPORTED';
-            return;
+            });
         }
 
-        document.getElementById('status').textContent =
-            'GPS: SEARCHING...';
+        map.on('load', applyAtlasStyle);
 
-        if (gpsStarted) return;
-        gpsStarted = true;
+        // Стрелка GPS
+        const arrowHTML = `
+            <svg class="user-arrow" viewBox="0 0 48 58"
+                 xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="arrowTop" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#ffffff"/>
+                        <stop offset="45%" stop-color="#8cfff5"/>
+                        <stop offset="100%" stop-color="#28cbd2"/>
+                    </linearGradient>
 
-        navigator.geolocation.watchPosition(
-            function(position) {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                const accuracy = Math.round(position.coords.accuracy);
+                    <linearGradient id="arrowSide" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#172536"/>
+                        <stop offset="100%" stop-color="#526477"/>
+                    </linearGradient>
+                </defs>
 
-                document.getElementById('status').textContent =
-                    'GPS: CONNECTED / ACCURACY: ' + accuracy + ' M';
+                <path d="M24 3 L44 27 L24 55 L4 27 Z"
+                      fill="#101827"
+                      stroke="#ffffff"
+                      stroke-width="2"/>
 
-                document.getElementById('coordinates').textContent =
-                    'COORDINATES: ' +
-                    lat.toFixed(6) + ', ' + lon.toFixed(6);
+                <path d="M24 3 L24 55 L4 27 Z"
+                      fill="url(#arrowSide)"/>
 
-                arrowMarker
-                    .setLngLat([lon, lat])
-                    .addTo(map);
+                <path d="M24 3 L42 26 L24 43 L6 26 Z"
+                      fill="url(#arrowTop)"
+                      stroke="#ffffff"
+                      stroke-width="1.2"/>
 
-                if (firstFix) {
-                    map.flyTo({
-                        center: [lon, lat],
-                        zoom: 16,
-                        speed: 1.2
-                    });
+                <path d="M18 49 L24 55 L30 49"
+                      fill="none"
+                      stroke="#ff62b9"
+                      stroke-width="2.5"
+                      stroke-linecap="round"/>
+            </svg>
+        `;
 
-                    firstFix = false;
-                }
-            },
+        const arrowElement = document.createElement('div');
+        arrowElement.innerHTML = arrowHTML;
 
-            function(error) {
-                gpsStarted = false;
-
-                const messages = {
-                    1: 'GPS: PERMISSION DENIED',
-                    2: 'GPS: POSITION UNAVAILABLE',
-                    3: 'GPS: TIMEOUT'
-                };
-
-                document.getElementById('status').textContent =
-                    messages[error.code] || 'GPS ERROR';
-            },
-
-            {
-                enableHighAccuracy: true,
-                maximumAge: 3000,
-                timeout: 15000
-            }
-        );
-    }
-
-    // PWA
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-            navigator.serviceWorker.register('./sw.js')
-                .catch(function(error) {
-                    console.error('Service Worker error:', error);
-                });
+        const arrowMarker = new maplibregl.Marker({
+            element: arrowElement,
+            anchor: 'center'
         });
-    }
-</script>
 
+        let gpsStarted = false;
+        let firstFix = true;
+
+        // GPS
+        function findMe() {
+            if (!navigator.geolocation) {
+                document.getElementById('status').textContent =
+                    'GPS: NOT SUPPORTED';
+                return;
+            }
+
+            document.getElementById('status').textContent =
+                'GPS: SEARCHING...';
+
+            if (gpsStarted) return;
+
+            gpsStarted = true;
+
+            navigator.geolocation.watchPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const accuracy = Math.round(position.coords.accuracy);
+
+                    document.getElementById('status').textContent =
+                        'GPS: CONNECTED / ACCURACY: ' + accuracy + ' M';
+
+                    document.getElementById('coordinates').textContent =
+                        'COORDINATES: ' +
+                        lat.toFixed(6) + ', ' + lon.toFixed(6);
+
+                    arrowMarker
+                        .setLngLat([lon, lat])
+                        .addTo(map);
+
+                    if (firstFix) {
+                        map.flyTo({
+                            center: [lon, lat],
+                            zoom: 16,
+                            speed: 1.2
+                        });
+
+                        firstFix = false;
+                    }
+                },
+
+                function(error) {
+                    gpsStarted = false;
+
+                    const messages = {
+                        1: 'GPS: PERMISSION DENIED',
+                        2: 'GPS: POSITION UNAVAILABLE',
+                        3: 'GPS: TIMEOUT'
+                    };
+
+                    document.getElementById('status').textContent =
+                        messages[error.code] || 'GPS ERROR';
+                },
+
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 3000,
+                    timeout: 15000
+                }
+            );
+        }
+
+        // PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .catch(function(error) {
+                        console.error('Service Worker error:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
