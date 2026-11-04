@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -110,6 +111,71 @@
                 drop-shadow(0 0 10px rgba(70, 235, 235, .8));
         }
 
+        /* Круглые маркеры Project Atlas */
+        .poi-marker {
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            background: rgba(20, 15, 39, .96);
+            border: 1.5px solid var(--poi-color);
+            box-shadow:
+                0 0 5px var(--poi-color),
+                0 0 12px color-mix(in srgb, var(--poi-color) 45%, transparent),
+                inset 0 0 8px rgba(255,255,255,.05);
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+
+        .poi-marker:hover {
+            transform: scale(1.18);
+            box-shadow:
+                0 0 8px var(--poi-color),
+                0 0 18px var(--poi-color);
+        }
+
+        .poi-marker svg {
+            width: 17px;
+            height: 17px;
+            fill: none;
+            stroke: var(--poi-color);
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* Маленькая подпись после нажатия */
+        .atlas-popup .maplibregl-popup-content {
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 105, 189, .65);
+            border-radius: 7px;
+            background: #171229;
+            color: #f5efff;
+            box-shadow: 0 0 16px rgba(255, 70, 160, .22);
+            font-family: Arial, sans-serif;
+        }
+
+        .atlas-popup .maplibregl-popup-tip {
+            border-top-color: #171229;
+            border-bottom-color: #171229;
+        }
+
+        .popup-name {
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: .5px;
+        }
+
+        .popup-type {
+            margin-top: 4px;
+            color: #55e6e8;
+            font-size: 9px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
         .maplibregl-ctrl-attrib {
             font-size: 10px !important;
         }
@@ -125,6 +191,11 @@
             .gps-button {
                 right: 15px;
                 bottom: 100px;
+            }
+
+            .poi-marker {
+                width: 32px;
+                height: 32px;
             }
         }
     </style>
@@ -153,11 +224,8 @@
         const map = new maplibregl.Map({
             container: 'map',
             style: 'https://tiles.openfreemap.org/styles/dark',
-
-            // Начальный обзор региона Ташкент — Чарвак
             center: [69.585, 41.465],
             zoom: 9.2,
-
             attributionControl: true,
             pitchWithRotate: false,
             dragRotate: false
@@ -266,7 +334,6 @@
                             isCasing ? casingColors : roadColors
                         );
 
-                        // Мягкое свечение крупных дорог
                         if (!isCasing) {
                             map.setPaintProperty(
                                 layer.id,
@@ -321,7 +388,149 @@
             });
         }
 
-        map.on('load', applyAtlasStyle);
+        // Первые реальные точки интереса
+        const pointsOfInterest = [
+            {
+                name: 'Cafe Dosan',
+                type: 'Кафе',
+                category: 'cafe',
+                coordinates: [69.270664, 41.303869]
+            },
+            {
+                name: 'Tashkent City Mall',
+                type: 'Торговый центр',
+                category: 'shop',
+                coordinates: [69.25244, 41.31629]
+            },
+            {
+                name: 'Площадь Амира Темура',
+                type: 'Достопримечательность',
+                category: 'landmark',
+                coordinates: [69.27966, 41.31143]
+            },
+            {
+                name: 'Комплекс Хазрати Имам',
+                type: 'Историческое место',
+                category: 'landmark',
+                coordinates: [69.24008, 41.33731]
+            },
+            {
+                name: 'Чарвакское водохранилище',
+                type: 'Природная достопримечательность',
+                category: 'nature',
+                coordinates: [70.03139, 41.63667]
+            },
+            {
+                name: 'Курорт Амирсой',
+                type: 'Горный курорт',
+                category: 'mountain',
+                coordinates: [69.94234, 41.48671]
+            }
+        ];
+
+        // SVG-значки
+        const poiIcons = {
+            cafe: `
+                <svg viewBox="0 0 24 24">
+                    <path d="M4 8h13v7a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/>
+                    <path d="M17 10h2a2 2 0 0 1 0 4h-2"/>
+                    <path d="M8 4v2M12 3v3M16 4v2"/>
+                </svg>
+            `,
+            shop: `
+                <svg viewBox="0 0 24 24">
+                    <path d="M5 8h14l1 12H4L5 8z"/>
+                    <path d="M9 9V6a3 3 0 0 1 6 0v3"/>
+                    <path d="M9 14h6"/>
+                </svg>
+            `,
+            landmark: `
+                <svg viewBox="0 0 24 24">
+                    <path d="M3 20h18M5 17h14M6 17V9h12v8"/>
+                    <path d="M4 9l8-5 8 5z"/>
+                    <path d="M9 11v4M12 11v4M15 11v4"/>
+                </svg>
+            `,
+            nature: `
+                <svg viewBox="0 0 24 24">
+                    <path d="M3 9c3-3 6 3 9 0s6-3 9 0"/>
+                    <path d="M3 14c3-3 6 3 9 0s6-3 9 0"/>
+                    <path d="M3 19c3-3 6 3 9 0s6-3 9 0"/>
+                </svg>
+            `,
+            mountain: `
+                <svg viewBox="0 0 24 24">
+                    <path d="M2 20l7-12 4 6 3-4 6 10z"/>
+                    <path d="M7 12l2 2 2-1M14 12l2 2 2-1"/>
+                </svg>
+            `
+        };
+
+        const poiColors = {
+            cafe: '#65e8e8',
+            shop: '#ff79c6',
+            landmark: '#c49aff',
+            nature: '#75e6bb',
+            mountain: '#75cfff'
+        };
+
+        // Добавление маркеров на карту
+        function addPoiMarkers() {
+            pointsOfInterest.forEach(point => {
+                const element = document.createElement('div');
+
+                element.className = 'poi-marker';
+                element.style.setProperty(
+                    '--poi-color',
+                    poiColors[point.category]
+                );
+
+                element.innerHTML = poiIcons[point.category];
+                element.title = point.name;
+                element.setAttribute('role', 'button');
+                element.setAttribute('aria-label', point.name);
+                element.setAttribute('tabindex', '0');
+
+                const popup = new maplibregl.Popup({
+                    offset: 22,
+                    closeButton: false,
+                    closeOnClick: true,
+                    className: 'atlas-popup'
+                }).setHTML(`
+                    <div class="popup-name">${point.name}</div>
+                    <div class="popup-type">${point.type}</div>
+                `);
+
+                element.addEventListener('click', event => {
+                    event.stopPropagation();
+
+                    popup
+                        .setLngLat(point.coordinates)
+                        .addTo(map);
+                });
+
+                element.addEventListener('keydown', event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        popup
+                            .setLngLat(point.coordinates)
+                            .addTo(map);
+                    }
+                });
+
+                new maplibregl.Marker({
+                    element: element,
+                    anchor: 'center'
+                })
+                    .setLngLat(point.coordinates)
+                    .addTo(map);
+            });
+        }
+
+        map.on('load', function() {
+            applyAtlasStyle();
+            addPoiMarkers();
+        });
 
         // Стрелка GPS
         const arrowHTML = `
